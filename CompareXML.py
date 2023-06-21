@@ -43,9 +43,9 @@ def compare_xml_files(backupFilePath, updateFilepath):
         resultsheet.column_dimensions['E'].width = 30
         resultsheet.column_dimensions['F'].width = 30
         resultsheet[f'B{row_count}'].value = "Text Content Difference"
-        resultsheet[f'C{row_count}'].value = "Attributes Changes of Backup"
+        resultsheet[f'C{row_count}'].value = "Attributes & Text Changes of Backup"
         resultsheet[f'C{row_count}'].alignment = resultsheet[f'C{row_count}'].alignment.copy(wrapText=True)
-        resultsheet[f'D{row_count}'].value = "Attributes Changes of Updated"
+        resultsheet[f'D{row_count}'].value = "Attributes & Text Changes of Updated"
         resultsheet[f'D{row_count}'].alignment = resultsheet[f'D{row_count}'].alignment.copy(wrapText=True)
         resultsheet[f'E{row_count}'].value = "Extra Nodes in Backup"
         resultsheet[f'E{row_count}'].alignment = resultsheet[f'E{row_count}'].alignment.copy(wrapText=True)
@@ -181,9 +181,16 @@ def compare_xml_elements(elem1, elem2, output_file):
         if len(elem1) > len(elem2):
             resultsheet[f'E{row_count}'].value = f"{find_extra_beads(elem1)}"
             resultsheet[f'E{row_count}'].alignment = resultsheet[f'E{row_count}'].alignment.copy(wrapText=True)
+            xmlstr = etree.tostring(elem1, encoding='unicode')
+            resultsheet[f'C{row_count}'].value = f"{xmlstr}"
+            resultsheet[f'C{row_count}'].alignment = resultsheet[f'C{row_count}'].alignment.copy(wrapText=True)
+
         else:
             resultsheet[f'F{row_count}'].value = f"{find_extra_beads(elem2)}"
             resultsheet[f'F{row_count}'].alignment = resultsheet[f'F{row_count}'].alignment.copy(wrapText=True)
+            xmlstr = etree.tostring(elem2, encoding='unicode')
+            resultsheet[f'D{row_count}'].value = f"{xmlstr}"
+            resultsheet[f'D{row_count}'].alignment = resultsheet[f'D{row_count}'].alignment.copy(wrapText=True)
 
         row_count += 1
 
