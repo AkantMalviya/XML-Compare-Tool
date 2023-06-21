@@ -1,11 +1,13 @@
 import datetime
 from tkinter import messagebox
-import xml.etree.ElementTree as ET
+# import xml.etree.ElementTree as ET
+from lxml import etree
 import os
 import openpyxl as XL
 from openpyxl.styles import Font
 from openpyxl.styles import Border, Side
 from difflib import SequenceMatcher
+from collections import OrderedDict
 
 red = '\033[91m'
 green = '\033[92m'
@@ -16,6 +18,7 @@ underline = '\033[4m'
 end = '\u001b[0m'
 
 global row_count, resultfile, resultsheet
+
 
 def compare_xml_files(backupFilePath, updateFilepath):
     if backupFilePath.get(1.0, "end-1c") and updateFilepath.get(1.0, "end-1c"):
@@ -37,9 +40,17 @@ def compare_xml_files(backupFilePath, updateFilepath):
         resultsheet.column_dimensions['B'].width = 30
         resultsheet.column_dimensions['C'].width = 30
         resultsheet.column_dimensions['D'].width = 30
-        resultsheet[f'B{row_count}'].value = "Difference"
-        resultsheet[f'C{row_count}'].value = "Backup File Changes"
-        resultsheet[f'D{row_count}'].value = "Updated File Changes"
+        resultsheet.column_dimensions['E'].width = 30
+        resultsheet.column_dimensions['F'].width = 30
+        resultsheet[f'B{row_count}'].value = "Text Content Difference"
+        resultsheet[f'C{row_count}'].value = "Attributes Changes of Backup"
+        resultsheet[f'C{row_count}'].alignment = resultsheet[f'C{row_count}'].alignment.copy(wrapText=True)
+        resultsheet[f'D{row_count}'].value = "Attributes Changes of Updated"
+        resultsheet[f'D{row_count}'].alignment = resultsheet[f'D{row_count}'].alignment.copy(wrapText=True)
+        resultsheet[f'E{row_count}'].value = "Extra Nodes in Backup"
+        resultsheet[f'E{row_count}'].alignment = resultsheet[f'E{row_count}'].alignment.copy(wrapText=True)
+        resultsheet[f'F{row_count}'].value = "Extra Nodes in Updated"
+        resultsheet[f'F{row_count}'].alignment = resultsheet[f'F{row_count}'].alignment.copy(wrapText=True)
         resultsheet[f'G{row_count}'].value = "CompareResults A != B"
         resultsheet.column_dimensions['G'].width = 400
         resultsheet[f'A{row_count}'].font = Font(bold=True)
@@ -55,8 +66,8 @@ def compare_xml_files(backupFilePath, updateFilepath):
 
         with open(filePath1) as file1, open(filePath2) as file2:
             try:
-                tree1 = ET.parse(file1)
-                tree2 = ET.parse(file2)
+                tree1 = etree.parse(file1)
+                tree2 = etree.parse(file2)
                 root1 = tree1.getroot()
                 root2 = tree2.getroot()
 
@@ -70,7 +81,7 @@ def compare_xml_files(backupFilePath, updateFilepath):
                 messagebox.showinfo("Task Completed",
                                     "Compare successful! Please Check Location.")
 
-            except ET.ParseError as e:
+            except etree.ParseError as e:
                 messagebox.showerror("Error", f"Error parsing XML: {e}")
 
     else:
@@ -80,18 +91,40 @@ def compare_xml_files(backupFilePath, updateFilepath):
 def compare_xml_elements(elem1, elem2, output_file):
     global row_count, resultfile, resultsheet
     if elem1.tag != elem2.tag:
-        #output_file.write(f"Tag mismatch: {elem1.tag} != {elem2.tag}\n")
         resultsheet[f'G{row_count}'].value = f"Tag mismatch: {elem1.tag} != {elem2.tag}\n"
+        if elem1.attrib.get("Label") == elem2.attrib.get("Label") and elem1.attrib.get("Label") != None:
+            resultsheet[f'A{row_count}'].value = f"{elem1.attrib.get('Label')}"
+
+        elif elem1.attrib.get("Label") != elem2.attrib.get("Label") and elem1.attrib.get("Label") != None and elem2.attrib.get("Label") != None:
+            resultsheet[f'A{row_count}'].value = f"{elem1.attrib.get('Label'), elem2.attrib.get('Label')}"
+
+        else:
+            Parent_node = elem1.getparent()
+            while Parent_node != None and Parent_node.attrib.get('Label') == None:
+                Parent_node = Parent_node.getparent()
+
+            if Parent_node != None and Parent_node.attrib.get('Label') != None:
+                resultsheet[f'A{row_count}'].value = f"{Parent_node.attrib.get('Label')}"
         row_count += 1
 
-
-    if compare_attributes(elem1.attrib,elem2.attrib, 'Visible', 'Label') != 0:
-        #output_file.write(f"Attribute mismatch for tag '{elem1.tag}': {elem1.attrib} != {elem2.attrib}\n")
+    if compare_attributes(elem1.attrib,elem2.attrib, 'Visible') != 0:
         resultsheet[f'G{row_count}'].value = f"Attribute mismatch for tag '{elem1.tag}': {elem1.attrib} != {elem2.attrib}\n"
-        if elem1.attrib.get("Label") == elem2.attrib.get("Label"):
+        if elem1.attrib.get("Label") == elem2.attrib.get("Label") and elem1.attrib.get("Label") != None:
             resultsheet[f'A{row_count}'].value = f"{elem1.attrib.get('Label')}"
-        keys_to_compare1 = [key for key in elem1.attrib.keys() if key != 'Visible' and key != 'Label']
-        keys_to_compare2 = [key for key in elem2.attrib.keys() if key != 'Visible' and key != 'Label']
+
+        elif elem1.attrib.get("Label") != elem2.attrib.get("Label") and elem1.attrib.get("Label") != None and elem2.attrib.get("Label") != None:
+            resultsheet[f'A{row_count}'].value = f"{elem1.attrib.get('Label'), elem2.attrib.get('Label')}"
+
+        else:
+            Parent_node = elem1.getparent()
+            while Parent_node != None and Parent_node.attrib.get('Label') == None:
+                Parent_node = Parent_node.getparent()
+
+            if Parent_node != None and Parent_node.attrib.get('Label') != None:
+                resultsheet[f'A{row_count}'].value = f"{Parent_node.attrib.get('Label')}"
+
+        keys_to_compare1 = [key for key in elem1.attrib.keys() if key != 'Visible']
+        keys_to_compare2 = [key for key in elem2.attrib.keys() if key != 'Visible']
         dict1 = {}
         dict2 = {}
         for key in keys_to_compare1:
@@ -108,8 +141,21 @@ def compare_xml_elements(elem1, elem2, output_file):
 
         row_count += 1
 
-    if elem1.text != elem2.text:
-        #output_file.write(f"Text content mismatch for tag '{elem1.tag}': {elem1.text} != {elem2.text}\n")
+    if elem1.text != elem2.text and elem1.text != None and elem1.text != "" and elem2.text != None and elem2.text != "":
+        if elem1.attrib.get("Label") == elem2.attrib.get("Label") and elem1.attrib.get("Label") != None:
+            resultsheet[f'A{row_count}'].value = f"{elem1.attrib.get('Label')}"
+
+        elif elem1.attrib.get("Label") != elem2.attrib.get("Label") and elem1.attrib.get("Label") != None and elem2.attrib.get("Label") != None:
+            resultsheet[f'A{row_count}'].value = f"{elem1.attrib.get('Label'), elem2.attrib.get('Label')}"
+
+        else:
+            Parent_node = elem1.getparent()
+            while Parent_node != None and Parent_node.attrib.get('Label') == None:
+                Parent_node = Parent_node.getparent()
+
+            if Parent_node != None and Parent_node.attrib.get('Label') != None:
+                resultsheet[f'A{row_count}'].value = f"{Parent_node.attrib.get('Label')}"
+
         resultsheet[f'G{row_count}'].value = f"Text content mismatch for tag '{elem1.tag}': {elem1.text} != {elem2.text}\n"
         difference = get_string_difference(elem1.text, elem2.text)
         resultsheet[f'B{row_count}'].value = f"{difference}"
@@ -117,16 +163,36 @@ def compare_xml_elements(elem1, elem2, output_file):
         row_count += 1
 
     if len(elem1) != len(elem2):
-        #output_file.write(f"Child element count mismatch for tag '{elem1.tag}': {len(elem1)} != {len(elem2)}\n")
         resultsheet[f'G{row_count}'].value = f"Child element count mismatch for tag '{elem1.tag}': {len(elem1)} != {len(elem2)}\n"
+        if elem1.attrib.get("Label") == elem2.attrib.get("Label") and elem1.attrib.get("Label") != None:
+            resultsheet[f'A{row_count}'].value = f"{elem1.attrib.get('Label')}"
+
+        elif elem1.attrib.get("Label") != elem2.attrib.get("Label") and elem1.attrib.get("Label") != None and elem2.attrib.get("Label") != None:
+            resultsheet[f'A{row_count}'].value = f"{elem1.attrib.get('Label'), elem2.attrib.get('Label')}"
+
+        else:
+            Parent_node = elem1.getparent()
+            while Parent_node != None and Parent_node.attrib.get('Label') == None:
+                Parent_node = Parent_node.getparent()
+
+            if Parent_node != None and Parent_node.attrib.get('Label') != None:
+                resultsheet[f'A{row_count}'].value = f"{Parent_node.attrib.get('Label')}"
+
+        if len(elem1) > len(elem2):
+            resultsheet[f'E{row_count}'].value = f"{find_extra_beads(elem1)}"
+            resultsheet[f'E{row_count}'].alignment = resultsheet[f'E{row_count}'].alignment.copy(wrapText=True)
+        else:
+            resultsheet[f'F{row_count}'].value = f"{find_extra_beads(elem2)}"
+            resultsheet[f'F{row_count}'].alignment = resultsheet[f'F{row_count}'].alignment.copy(wrapText=True)
+
         row_count += 1
 
     for child1, child2 in zip(elem1, elem2):
         compare_xml_elements(child1, child2, output_file)
 
 
-def compare_attributes(dict1, dict2, ignorekey1, ignorekey2):
-    keys_to_compare = [key for key in dict1.keys() if key != ignorekey1 and key != ignorekey2]
+def compare_attributes(dict1, dict2, ignorekey1):
+    keys_to_compare = [key for key in dict1.keys() if key != ignorekey1]
     count = 0
     for key in keys_to_compare:
         if dict1.get(key) != dict2.get(key):
@@ -145,5 +211,21 @@ def get_string_difference(string1, string2):
                 differences += f'Delete: {string1[i1:i2]}\n'
             elif tag == 'insert':
                 differences += f'Insert: {string2[j1:j2]}\n'
+    return differences
 
 
+def find_extra_beads(elem):
+    stack = [elem]
+    d = [OrderedDict()]
+    while stack:
+        element = stack.pop()
+        if element.attrib.get('Label') != None and element.tag != None:
+            d.append({element.tag: element.attrib.get('Label')})
+        stack.extend(reversed(list(element)))
+
+    labels = ""
+    i = 1
+    while i < len(d):
+        labels += f"{d[i]}\n"
+        i += 1
+    return labels
