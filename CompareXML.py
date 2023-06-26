@@ -240,19 +240,19 @@ def find_extra_beads(elem):
         i += 1
     return labels
 
-'''IF first check process name then 	check process by their 	lable numbers and Name
-  Match comparison
-
-Else
-    IF loop on all process and check if Name is matching with the process
- 	Comparison
-    Else
-	show in backup or updated as a extra process	
-
-
-
-check also tags names of process 
-
-
-  for inside tags check with label numbers
-'''
+# '''IF first check process name then 	check process by their 	lable numbers and Name
+#   Match comparison
+#
+# Else
+#     IF loop on all process and check if Name is matching with the process
+#  	Comparison
+#     Else
+# 	show in backup or updated as a extra process
+#
+#
+#
+# check also tags names of process
+#
+#
+#   for inside tags check with label numbers
+# '''
