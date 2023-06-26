@@ -8,6 +8,7 @@ from openpyxl.styles import Font
 from openpyxl.styles import Border, Side
 from difflib import SequenceMatcher
 from collections import OrderedDict
+import codecs
 
 red = '\033[91m'
 green = '\033[92m'
@@ -64,7 +65,7 @@ def compare_xml_files(backupFilePath, updateFilepath):
         # with open(output_file_path, 'w') as f:
         #     f.write('')
 
-        with open(filePath1) as file1, open(filePath2) as file2:
+        with open(filePath1, encoding='utf8') as file1, open(filePath2, encoding='utf8') as file2:
             try:
                 tree1 = etree.parse(file1)
                 tree2 = etree.parse(file2)
@@ -90,6 +91,8 @@ def compare_xml_files(backupFilePath, updateFilepath):
 
 def compare_xml_elements(elem1, elem2, output_file):
     global row_count, resultfile, resultsheet
+    if elem1.tag == 'Process' and elem1.attrib.get('Name') == elem2.attrib.get('Name'):
+        pass
     if elem1.tag != elem2.tag:
         resultsheet[f'G{row_count}'].value = f"Tag mismatch: {elem1.tag} != {elem2.tag}\n"
         if elem1.attrib.get("Label") == elem2.attrib.get("Label") and elem1.attrib.get("Label") != None:
@@ -236,3 +239,20 @@ def find_extra_beads(elem):
         labels += f"{d[i]}\n"
         i += 1
     return labels
+
+'''IF first check process name then 	check process by their 	lable numbers and Name
+  Match comparison
+
+Else
+    IF loop on all process and check if Name is matching with the process
+ 	Comparison
+    Else
+	show in backup or updated as a extra process	
+
+
+
+check also tags names of process 
+
+
+  for inside tags check with label numbers
+'''
