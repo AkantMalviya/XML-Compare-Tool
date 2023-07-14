@@ -73,7 +73,7 @@ def compare_xml_files(backupFilePath, updateFilepath):
                 root2 = tree2.getroot()
 
                 # with open(output_file_path, 'w') as f:
-                compare_xml_elements(root1, root2, resultsheet)
+                mycompare(root1, root2, resultsheet)
                 for row in resultsheet.iter_rows():
                     for cell in row:
                         cell.border = border_style
@@ -89,10 +89,96 @@ def compare_xml_files(backupFilePath, updateFilepath):
         messagebox.showwarning("Warning", "Please select XML files!")
 
 
+def mycompare(ele1, ele2, output_fil):
+    global row_count, resultfile, resultsheet
+
+    for chil1, chil2 in zip(ele1, ele2):
+        processflag1 = False
+        processflag2 = False
+        if chil1.tag == 'Process' and chil2.tag == 'Process' and chil1.attrib.get('Name') == chil2.attrib.get('Name'):
+            compare_xml_elements(chil1, chil2, output_fil)
+
+        else:
+            if chil1.tag != 'Process' and chil2.tag != 'Process':
+                compare_xml_elements(chil1, chil2, output_fil)
+
+            if chil1.tag == 'Process':
+                for chi2, t1 in zip(ele2, ele1):
+                    if chil1.attrib.get('Name') == chi2.attrib.get('Name'):
+                        processflag1 = True
+                        compare_xml_elements(chil1, chi2, output_fil)
+                        break
+
+                if processflag1 == False:
+                    resultsheet[f'E{row_count}'].value = f"Process - {chil1.attrib.get('Label')}"
+                    resultsheet[f'E{row_count}'].alignment = resultsheet[f'E{row_count}'].alignment.copy(
+                        wrapText=True)
+                    xmlstr = etree.tostring(chil1, encoding='unicode')
+                    resultsheet[f'C{row_count}'].value = f"{xmlstr}"
+                    resultsheet[f'C{row_count}'].alignment = resultsheet[f'C{row_count}'].alignment.copy(
+                        wrapText=True)
+
+                row_count += 1
+
+            if chil2.tag == 'Process':
+                for chi1, t2 in zip(ele1, ele2):
+                    if chil2.attrib.get('Name') == chi1.attrib.get('Name'):
+                        processflag2 = True
+                        compare_xml_elements(chi1, chil2, output_fil)
+                        break
+
+                if processflag2 == False:
+                    resultsheet[f'F{row_count}'].value = f"{chil2.attrib.get('Label')}"
+                    resultsheet[f'F{row_count}'].alignment = resultsheet[f'F{row_count}'].alignment.copy(
+                        wrapText=True)
+                    xmlstr = etree.tostring(chil2, encoding='unicode')
+                    resultsheet[f'D{row_count}'].value = f"{xmlstr}"
+                    resultsheet[f'D{row_count}'].alignment = resultsheet[f'D{row_count}'].alignment.copy(
+                        wrapText=True)
+
+                row_count += 1
+        #
+        # if len(elem1) != len(elem2):
+        #     resultsheet[
+        #         f'G{row_count}'].value = f"Child element count mismatch for tag '{elem1.tag}': {len(elem1)} != {len(elem2)}\n"
+        #     if elem1.attrib.get("Label") == elem2.attrib.get("Label") and elem1.attrib.get("Label") != None:
+        #         resultsheet[f'A{row_count}'].value = f"{elem1.attrib.get('Label')}"
+        #
+        #     elif elem1.attrib.get("Label") != elem2.attrib.get("Label") and elem1.attrib.get(
+        #             "Label") != None and elem2.attrib.get("Label") != None:
+        #         resultsheet[
+        #             f'A{row_count}'].value = f"{elem1.attrib.get('Label'), elem2.attrib.get('Label')}"
+        #
+        #     else:
+        #         Parent_node = elem1.getparent()
+        #         while Parent_node != None and Parent_node.attrib.get('Label') == None:
+        #             Parent_node = Parent_node.getparent()
+        #
+        #         if Parent_node != None and Parent_node.attrib.get('Label') != None:
+        #             resultsheet[f'A{row_count}'].value = f"{Parent_node.attrib.get('Label')}"
+        #
+        #     if len(elem1) > len(elem2):
+        #         resultsheet[f'E{row_count}'].value = f"{find_extra_beads(elem1)}"
+        #         resultsheet[f'E{row_count}'].alignment = resultsheet[f'E{row_count}'].alignment.copy(
+        #             wrapText=True)
+        #         xmlstr = etree.tostring(elem1, encoding='unicode')
+        #         resultsheet[f'C{row_count}'].value = f"{xmlstr}"
+        #         resultsheet[f'C{row_count}'].alignment = resultsheet[f'C{row_count}'].alignment.copy(
+        #             wrapText=True)
+        #
+        #     else:
+        #         resultsheet[f'F{row_count}'].value = f"{find_extra_beads(elem2)}"
+        #         resultsheet[f'F{row_count}'].alignment = resultsheet[f'F{row_count}'].alignment.copy(
+        #             wrapText=True)
+        #         xmlstr = etree.tostring(elem2, encoding='unicode')
+        #         resultsheet[f'D{row_count}'].value = f"{xmlstr}"
+        #         resultsheet[f'D{row_count}'].alignment = resultsheet[f'D{row_count}'].alignment.copy(
+        #             wrapText=True)
+
+
 def compare_xml_elements(elem1, elem2, output_file):
     global row_count, resultfile, resultsheet
-    if elem1.tag == 'Process' and elem1.attrib.get('Name') == elem2.attrib.get('Name'):
-        pass
+
     if elem1.tag != elem2.tag:
         resultsheet[f'G{row_count}'].value = f"Tag mismatch: {elem1.tag} != {elem2.tag}\n"
         if elem1.attrib.get("Label") == elem2.attrib.get("Label") and elem1.attrib.get("Label") != None:
